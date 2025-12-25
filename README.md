@@ -265,7 +265,7 @@ x = self.norm1(x + attn)   # Add & Norm
 ffn = self.ffn2(self.ffn1(x))
 x = self.norm2(x + ffn)
 ```
-attention : keras ne fournis pas instinctivement le positional encoding il faut le rajouter nous même avant de ffaire rentrer l'embedding dans le modèle.
+⚠️ : keras ne fournis pas instinctivement le positional encoding il faut le rajouter nous même avant de ffaire rentrer l'embedding dans le modèle.
 
 
 -PyTorch
@@ -288,8 +288,8 @@ encoder = nn.TransformerEncoder(
 )
 ```
 
-2) Couches de sortie selon la tâche
-🔹 Classification multi-classes (1 classe parmi K)
+## 2) Couches de sortie selon la tâche
+### 🔹 Classification multi-classes (1 classe parmi K)
 
 Sortie : Linear/Dense(K)
 
@@ -297,7 +297,7 @@ Activation : softmax (souvent dans la loss)
 
 Limite : pas multi-label
 
-🔹 Classification binaire
+### 🔹 Classification binaire
 
 Sortie : Linear(1)
 
@@ -305,7 +305,7 @@ Activation : sigmoid
 
 Limite : sensible au déséquilibre
 
-🔹 Classification multi-label
+### 🔹 Classification multi-label
 
 Sortie : Linear(K)
 
@@ -313,7 +313,7 @@ Activation : sigmoid par classe
 
 Limite : labels supposés indépendants
 
-🔹 Régression non bornée
+### 🔹 Régression non bornée
 
 Sortie : Linear(O)
 
@@ -321,20 +321,20 @@ Activation : aucune
 
 Limite : valeurs physiquement impossibles possibles
 
-🔹 Régression bornée [0,1]
+### 🔹 Régression bornée [0,1]
 
 Sortie : Linear(O) + Sigmoid
 
 Limite : saturation proche des bornes
 
-🔹 Régression positive
+### 🔹 Régression positive
 
 Sortie : Softplus ou ReLU
 
 Limite : ReLU peut bloquer à 0
 
-3) Losses utilisées dans la littérature
-🔹 Régression
+## 3) Losses utilisées dans la littérature
+### 🔹 Régression
 
 MSE : standard, sensible aux outliers
 
@@ -344,7 +344,7 @@ Huber / SmoothL1 : compromis idéal
 
 NLL Gaussienne : prédiction μ, σ
 
-🔹 Classification
+### 🔹 Classification
 
 CrossEntropy : multi-classes
 
@@ -354,14 +354,14 @@ Focal Loss : classes déséquilibrées
 
 KL Divergence : distributions / distillation
 
-🔹 Séquentiel spécifique
+### 🔹 Séquentiel spécifique
 
 CTC Loss : séquences non alignées
 
 Ranking / Contrastive : embeddings
 
-4) Optimizers – fonctionnement et usages
-🔹 SGD
+## 4) Optimizers – fonctionnement et usages
+### 🔹 SGD
 
 Descente pure du gradient
 
@@ -369,13 +369,13 @@ Bonne généralisation
 
 Lent, LR critique
 
-🔹 SGD + Momentum
+### 🔹 SGD + Momentum
 
 Accumulation de vitesse
 
 Très utilisé en CNN vision
 
-🔹 Adam
+### 🔹 Adam
 
 Moments d’ordre 1 et 2
 
@@ -383,7 +383,7 @@ Rapide, robuste
 
 Standard pour RNN/LSTM
 
-🔹 AdamW
+### 🔹 AdamW
 
 Adam + weight decay correct
 
@@ -391,25 +391,177 @@ Standard pour Transformers
 
 Très bon généraliste
 
-🔹 RMSProp
+### 🔹 RMSProp
 
 Moyenne mobile des gradients²
 
 Historiquement utilisé pour RNN
 
-🔹 Adagrad / Adadelta
+### 🔹 Adagrad / Adadelta
 
 Features rares
 
 Peu utilisés aujourd’hui
 
-🔹 LAMB / Adafactor
+### 🔹 LAMB / Adafactor
 
 Très gros modèles
 
 NLP / Transformers large-scale
+Dropout — fiche pratique
 
-5) Associations typiques observées
+## 5) Dropout
+
+Technique de régularisation.
+
+Pendant l’entraînement, une fraction p des activations est mise à zéro aléatoirement.
+
+Objectif : réduire l’overfitting en empêchant la co-adaptation des neurones.
+
+Inactif en inference (test).
+
+### 1) Paramètre clé
+
+dropout_rate = p avec p ∈ [0,1)
+
+p = 0.1 → 10 % des activations annulées
+
+p = 0.5 → 50 % annulées
+
+Bonnes valeurs usuelles :
+
+Transformers : 0.1
+
+CNN : 0.2 – 0.5
+
+RNN / LSTM : 0.1 – 0.3
+
+MLP : 0.3 – 0.5
+
+### 2) Implémentation en Keras
+#### a) Dropout classique (MLP, CNN, Transformer)
+from tensorflow.keras.layers import Dropout
+
+x = Dense(128, activation="relu")(x)
+x = Dropout(0.3)(x)
+
+
+Appliqué sur les activations
+
+Actif uniquement quand training=True
+
+#### b) Dropout dans un Transformer (après sous-blocs)
+attn_out = MultiHeadAttention(...)(x, x)
+attn_out = Dropout(0.1)(attn_out)
+x = LayerNormalization()(x + attn_out)
+
+#### c) RNN / LSTM (spécifique)
+LSTM(
+    units=128,
+    dropout=0.2,           # sur les entrées
+    recurrent_dropout=0.0 # sur les connexions récurrentes (souvent 0)
+)
+
+### 3) Implémentation en PyTorch
+#### a) Dropout classique
+import torch.nn as nn
+
+drop = nn.Dropout(p=0.3)
+
+x = self.fc(x)
+x = drop(x)
+
+#### b) Dans un nn.Module
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = nn.Linear(128, 128)
+        self.drop = nn.Dropout(0.3)
+
+    def forward(self, x):
+        x = self.fc(x)
+        x = self.drop(x)
+        return x
+
+#### c) RNN / LSTM
+nn.LSTM(
+    input_size=F,
+    hidden_size=H,
+    num_layers=2,
+    dropout=0.2,      # entre couches (pas sur les récurrences internes)
+    batch_first=True
+)
+
+
+⚠️ En PyTorch, le dropout du LSTM s’applique entre les couches, pas à l’intérieur d’une seule couche.
+
+### 4) Où placer le Dropout (règles simples)
+✅ Bonnes pratiques
+
+Après une couche Dense / Linear
+
+Après un sous-bloc Transformer (MHA, FFN), avant Add & Norm
+
+Avant la tête de sortie, jamais après l’activation finale
+
+❌ À éviter
+
+Juste avant une sortie softmax/sigmoid
+
+Trop tôt dans le réseau (perte d’information)
+
+Trop élevé dans les RNN (instabilité temporelle)
+
+### 5) Contextes d’utilisation
+#### MLP
+
+Très efficace
+
+Souvent après chaque couche Dense
+
+#### CNN
+
+Utile surtout après les couches denses
+
+Parfois remplacé par SpatialDropout
+
+#### RNN / LSTM
+
+À utiliser avec parcimonie
+
+Plutôt sur les entrées / entre couches
+
+#### Transformer
+
+Standard dans :
+
+MHA
+
+FFN
+
+chemins résiduels
+
+Valeur canonique : 0.1
+
+### 6) Ce que fait / ne fait pas le Dropout
+
+Fait
+
+Réduit l’overfitting
+
+Force des représentations robustes
+
+Améliore la généralisation
+
+Ne fait pas
+
+Ne supprime pas des neurones définitivement
+
+Ne modifie pas l’architecture
+
+N’agit pas en inference
+
+## 5) Associations typiques observées
 
 CNN (vision) → SGD + momentum / Adam
 
