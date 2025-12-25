@@ -1,0 +1,23 @@
+# Core numerical
+numpy>=1.23
+scipy>=1.9
+
+# Deep Learning frameworks
+tensorflow>=2.12
+torch>=2.0
+torchvision>=0.15
+torchaudio>=2.0
+
+# Utilities
+scikit-learn>=1.2
+tqdm>=4.65
+
+# Visualization (optional but very useful)
+matplotlib>=3.7
+seaborn>=0.12
+
+# Optional: data handling
+pandas>=1.5
+
+# Optional: experiment tracking / debugging
+ipython>=8.0
