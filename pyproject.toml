@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ia-packages-synthesis"
+version = "0.1.0"
+description = "Reusable ML utilities (header, seed, device, etc.)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "numpy>=1.23",
+  "torch>=2.0",
+  "tensorflow>=2.12"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ia_packages_synthesis*"]
