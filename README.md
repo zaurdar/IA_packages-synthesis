@@ -1,8 +1,8 @@
 # IA_packages-synthesis
-1) Types de couches – shapes, rôle, implémentations
-🔹 MLP (Dense / Fully Connected)
+## 1) Types de couches – shapes, rôle, implémentations
+### 🔹 MLP (Dense / Fully Connected)
 
-Rôle
+* Rôle
 
 Transformation non linéaire de features
 
@@ -29,6 +29,7 @@ Il agit indépendamment sur chaque xₜ
 Équivalent à TimeDistributed(MLP)
 
 Keras
+```python
 Dense(
     units,
     activation=None,
@@ -38,14 +39,15 @@ Dense(
     kernel_regularizer=None,
     bias_regularizer=None,
 )
-
+```
+```python
 PyTorch
 nn.Linear(
     in_features,
     out_features,
     bias=True
 )
-
+```
 🔹 CNN (Convolutional Neural Network)
 CNN 1D (signaux, séries)
 
