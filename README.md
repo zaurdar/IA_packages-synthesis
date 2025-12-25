@@ -1,4 +1,11 @@
 # IA_packages-synthesis
+
+Conventions :  
+B = batch size · T = longueur de séquence · F = features ·  
+U = unités · H = hidden size · C = canaux ·  
+L = longueur 1D · H/W = hauteur / largeur ·  
+D = embedding dim · K = classes · O = output dim
+
 ## 1) Types de couches – shapes, rôle, implémentations
 ### 🔹 MLP (Dense / Fully Connected)
 
@@ -8,26 +15,26 @@ Transformation non linéaire de features
 
 Peut être utilisé instantanément ou par pas de temps
 
-Input shape
+* Input shape
 
 Standard : (B, F)
 
 Temporel (sans mélange) : (B, T, F)
 
-Output shape
+* Output shape
 
 (B, U)
 
-Temporel : (B, T, U)
+* Temporel : (B, T, U)
 
 ⚠️ Point clé (important)
 
-Un MLP appliqué sur (B, T, F) ne mélange pas le temps
+Un MLP pytorch appliqué sur (B, T, F) ne mélange pas le temps
 
 Il agit indépendamment sur chaque xₜ
 
-Équivalent à TimeDistributed(MLP)
-
+Avec keras c'est équivalent à TimeDistributed(MLP)
+* Implémentation
 Keras
 ```python
 Dense(
@@ -48,20 +55,24 @@ nn.Linear(
     bias=True
 )
 ```
-🔹 CNN (Convolutional Neural Network)
-CNN 1D (signaux, séries)
+### 🔹 CNN (Convolutional Neural Network)
+#### CNN 1D (signaux, séries)
 
-Input
+* Input
 
 Keras : (B, L, C)
 
 PyTorch : (B, C, L)
 
-Output
+* Output
+  
+Keras : (B,Lout​,Cout​)
 
-(B, L', C_out)
+PyTorch : (B,Cout​,Lout​)
 
+* Implémentation
 Keras
+```python
 Conv1D(
     filters,
     kernel_size,
@@ -71,8 +82,11 @@ Conv1D(
     activation=None,
     use_bias=True,
 )
+```
+filters = nombre de filtre et donc = Cout le nombre de canaux en sortie
 
 PyTorch
+```python
 nn.Conv1d(
     in_channels,
     out_channels,
@@ -82,16 +96,24 @@ nn.Conv1d(
     dilation=1,
     bias=True
 )
+```
+#### CNN 2D (images)
 
-CNN 2D (images)
-
-Input
+* Input
 
 Keras : (B, H, W, C)
 
 PyTorch : (B, C, H, W)
 
+* output
+
+keras : (B,Hout​,Wout​,Cout​)
+
+PyTorch : (B,Cout​,Hout​,Wout​)
+
+* Implémentation
 Keras
+```python
 Conv2D(
     filters,
     kernel_size,
@@ -99,8 +121,9 @@ Conv2D(
     padding="valid",
     activation=None
 )
-
+```
 PyTorch
+```python
 nn.Conv2d(
     in_channels,
     out_channels,
@@ -108,24 +131,25 @@ nn.Conv2d(
     stride=1,
     padding=0
 )
+```
+### 🔹 RNN (vanilla)
 
-🔹 RNN (vanilla)
-
-Rôle
+* Rôle
 
 Modélisation séquentielle simple
 
 Dépendances temporelles courtes
 
-Input
+* Input
 
 (B, T, F)
 
-Output
+* Output
 
 (B, H) ou (B, T, H)
-
+* Implémentation
 Keras
+```python
 SimpleRNN(
     units,
     activation="tanh",
@@ -134,8 +158,9 @@ SimpleRNN(
     dropout=0.0,
     recurrent_dropout=0.0
 )
-
+```
 PyTorch
+```python
 nn.RNN(
     input_size,
     hidden_size,
@@ -145,25 +170,26 @@ nn.RNN(
     dropout=0.0,
     bidirectional=False
 )
+```
+### 🔹 LSTM
 
-🔹 LSTM
-
-Rôle
+* Rôle
 
 Dépendances longues
 
 Mémoire explicite via cₜ
 
-Input
+* Input
 
 (B, T, F)
 
-Output
+* Output
 
 (B, H) ou (B, T, H)
 
 États internes (hₜ, cₜ)
-
+* Implémentation
+```python
 Keras
 LSTM(
     units,
@@ -174,8 +200,9 @@ LSTM(
     dropout=0.0,
     recurrent_dropout=0.0
 )
-
+```
 PyTorch
+```python
 nn.LSTM(
     input_size,
     hidden_size,
@@ -184,41 +211,66 @@ nn.LSTM(
     dropout=0.0,
     bidirectional=False
 )
+```
+### 🔹 Transformer (Encoder)
 
-🔹 Transformer (Encoder)
-
-Rôle
+* Rôle
 
 Dépendances longues sans récurrence
 
 Attention globale
 
-Input
+Un bloc Transformer Encoder contient exactement :
+
+Multi-Head Self-Attention
+
+Add & Norm
+
+Feed-Forward Network (FFN)
+
+Add & Norm
+
+* Input
 
 (B, T, D)
 
-Output
+* Output
 
 (B, T, D)
 
-Keras
+-Keras
+```python
 MultiHeadAttention(
     num_heads,
     key_dim,
     value_dim=None,
     dropout=0.0
 )
-
-
-blocs usuels :
-
+```
 LayerNormalization
-
+```python
+self.norm1 = layers.LayerNormalization(epsilon=eps)
+```
 Dense (FFN)
+```python
+self.ffn1 = layers.Dense(d_ff, activation=activation)
+self.ffn2 = layers.Dense(d_model)
+(on essaie toujours de mettre au moins deux couches de FFN)
+```
+Le forward ressemblera typiquement à :
+```python
+attn = self.mha(query=x, value=x, key=x, attention_mask=mask, training=training)
+x = self.norm1(x + attn)   # Add & Norm
+# Feed-forward
+ffn = self.ffn2(self.ffn1(x))
+x = self.norm2(x + ffn)
+```
+attention : keras ne fournis pas instinctivement le positional encoding il faut le rajouter nous même avant de ffaire rentrer l'embedding dans le modèle.
 
-Skip connections
 
-PyTorch
+-PyTorch
+d_model = taille d'embedding
+```python
 nn.TransformerEncoderLayer(
     d_model,
     nhead,
@@ -227,6 +279,14 @@ nn.TransformerEncoderLayer(
     activation="relu",
     batch_first=True
 )
+```
+on rajoute une couche de positionnal encoding, du dropout et une linear à la fin :
+```python
+encoder = nn.TransformerEncoder(
+    encoder_layer,
+    num_layers=6
+)
+```
 
 2) Couches de sortie selon la tâche
 🔹 Classification multi-classes (1 classe parmi K)
