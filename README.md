@@ -651,3 +651,116 @@ Transformer → AdamW + scheduler + warmup
 Régression → Adam(W) + MSE / Huber
 
 Classification → Adam(W) + CE / BCE
+## 6) éstimer le nombre de couches nécessaires
+### Estimation du nombre de couches nécessaires
+
+* Principe fondamental
+Il n’existe pas de formule exacte pour déterminer le nombre de couches d’un réseau.
+La profondeur doit être choisie **en fonction de la structure du problème**, et non
+uniquement à partir des dimensions d’entrée ou de sortie.
+
+La profondeur permet de **factoriser la complexité** :
+- couches basses : motifs simples,
+- couches intermédiaires : structures composées,
+- couches hautes : concepts abstraits.
+
+---
+
+### Heuristique 1 — Complexité spatiale et structure des données
+
+* Données simples
+- signaux peu structurés,
+- faible variabilité.
+
+👉 1 à 2 couches suffisent.
+
+* Données structurées
+- textures,
+- motifs répétitifs,
+- corrélations locales.
+
+👉 3 à 5 couches sont généralement nécessaires.
+
+* Données très hiérarchiques
+- structures complexes,
+- dépendances multi-échelles.
+
+👉 5 à 10 couches ou plus, souvent avec connexions résiduelles.
+
+---
+
+### Heuristique 2 — Étendue des dépendances temporelles
+
+* Dépendances courtes
+- variations locales,
+- peu de mémoire nécessaire.
+
+👉 Convolutions et pooling temporel suffisants.
+
+* Dépendances moyennes
+- évolution progressive,
+- transitions temporelles claires.
+
+👉 Une couche LSTM ou BiLSTM.
+
+* Dépendances longues
+- contexte global important,
+- mémoire sur de nombreux pas de temps.
+
+👉 Plusieurs couches récurrentes, ou architectures à attention.
+
+---
+
+### Heuristique 3 — Taille du jeu de données
+
+* Peu de données
+- risque élevé de sur-apprentissage.
+
+👉 Réseau peu profond et fortement régularisé.
+
+* Beaucoup de données
+- grande diversité,
+- meilleure généralisation possible.
+
+👉 Réseau plus profond, avec normalisation et régularisation adaptées.
+
+---
+
+### Heuristique 4 — Nature de la sortie
+
+* Sortie simple
+- classification globale,
+- régression scalaire.
+
+👉 Peu de couches nécessaires.
+
+* Sortie complexe
+- prédiction par pas de temps,
+- sorties structurées.
+
+👉 Plus de couches pour capter des relations fines.
+
+---
+
+### Méthode pratique recommandée
+
+1. Commencer par une **architecture simple**.
+2. Observer les **courbes d’apprentissage**.
+3. Ajouter des couches uniquement en cas de sous-apprentissage.
+4. Arrêter l’augmentation de profondeur dès que le gain devient marginal.
+
+---
+
+* Points importants
+
+- Ajouter des couches augmente la capacité, mais aussi le risque d’overfitting.
+- La profondeur n’est utile que si elle correspond à une structure réelle dans les données.
+- La validation empirique reste indispensable.
+
+---
+
+* Résumé
+
+> Le nombre de couches d’un réseau doit être choisi de manière progressive et justifiée,
+> en fonction de la complexité des motifs à apprendre, des dépendances temporelles et
+> de la quantité de données disponibles.
