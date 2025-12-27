@@ -217,6 +217,64 @@ nn.LSTM(
     bidirectional=False
 )
 ```
+### 🔹 BiLSTM
+* input
+
+En général (Keras, et PyTorch avec batch_first=True) :
+
+Input : (B, T, F)
+
+* output
+
+Un BiLSTM concatène forward+backward, donc la dimension cachée devient 2H.
+
+Cas A — sortie à chaque timestep :
+
+Output seq : (B, T, 2H)
+
+Cas B — sortie globale (dernier état) :
+
+Output last : (B, 2H) (souvent on prend le dernier vecteur de la séquence ou on pool)
+* Implémentation
+Keras
+
+👉 En Keras, un BiLSTM n’est pas une couche séparée, mais un wrapper Bidirectional autour d’un LSTM.
+
+return_sequences garde le même rôle que pour LSTM
+
+la dimension cachée est doublée automatiquement : 2H
+```python
+Bidirectional(
+    LSTM(
+        units,
+        activation="tanh",
+        recurrent_activation="sigmoid",
+        return_sequences=False,
+        return_state=False,
+        dropout=0.0,
+        recurrent_dropout=0.0
+    ),
+    merge_mode="concat"  # par défaut
+)
+```
+
+PyTorch
+
+👉 En PyTorch, le BiLSTM est activé via le paramètre bidirectional=True.
+
+PyTorch retourne toujours toute la séquence
+
+la dimension cachée est aussi doublée automatiquement
+```python
+nn.LSTM(
+    input_size,
+    hidden_size,
+    num_layers=1,
+    batch_first=True,
+    dropout=0.0,
+    bidirectional=True
+)
+```
 ### 🔹 Transformer (Encoder)
 
 * Rôle
@@ -242,7 +300,8 @@ Add & Norm
 * Output
 
 (B, T, D)
-
+* Implémentation
+  
 -Keras
 ```python
 MultiHeadAttention(
