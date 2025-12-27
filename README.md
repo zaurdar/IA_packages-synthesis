@@ -290,6 +290,93 @@ nn.LSTM(
     bidirectional=True
 )
 ```
+🔹 ConvLSTM
+Un **ConvLSTM** (Convolutional LSTM) est une extension du LSTM classique conçue pour
+traiter des **données spatio-temporelles** (séquences d’images, cartes, champs 2D évoluant dans le temps).
+
+L’idée clé est simple :
+
+> **on remplace toutes les opérations fully connected internes du LSTM par des convolutions**.
+
+Ainsi :
+- la **structure spatiale** (voisinage, motifs locaux) est conservée,
+- la **dynamique temporelle** est modélisée via la mémoire du LSTM.
+
+Conceptuellement, un ConvLSTM combine :
+- un **CNN** (pour l’espace),
+- un **LSTM** (pour le temps),
+mais de manière **couplée et locale**, et non séquentielle.
+
+* input
+
+À chaque pas de temps, l’entrée est une carte spatiale (image / feature map).
+
+En général :
+
+Keras / TensorFlow :
+
+Input : (B, T, H, W, C)
+
+
+PyTorch :
+
+Input : (B, T, C, H, W)
+
+
+où :
+
+B : batch size
+
+T : nombre de pas de temps
+
+H, W : dimensions spatiales
+
+C : canaux d’entrée
+
+* output
+
+Un ConvLSTM conserve la structure spatiale dans sa sortie.
+La dimension cachée correspond au nombre de filtres convolutionnels F.
+
+Cas A — sortie à chaque timestep :
+
+Output seq : (B, T, H, W, F)
+
+
+Cas B — sortie finale uniquement :
+
+Output last : (B, H, W, F)
+
+
+👉 Contrairement à un LSTM/BiLSTM classique, la sortie n’est pas un vecteur, mais une carte 2D (feature map).
+
+* Implémentation
+
+Keras
+
+👉 En Keras, le ConvLSTM est disponible nativement via ConvLSTM2D.
+
+filters joue le rôle de la dimension cachée H
+
+kernel_size définit le voisinage spatial
+
+return_sequences garde le même rôle que pour LSTM
+```python
+ConvLSTM2D(
+    filters,
+    kernel_size=(3, 3),
+    padding="same",
+    activation="tanh",
+    return_sequences=False,  # True -> (B, T, H, W, F)
+    return_state=False,
+    dropout=0.0,
+    recurrent_dropout=0.0
+)
+```
+PyTorch
+
+👉 PyTorch ne fournit pas de ConvLSTM natif.
+Il faut l’implémenter manuellement ou utiliser une librairie externe.
 ### 🔹 Transformer (Encoder)
 
 * Rôle
