@@ -290,7 +290,7 @@ nn.LSTM(
     bidirectional=True
 )
 ```
-🔹 ConvLSTM
+### 🔹 ConvLSTM
 Un **ConvLSTM** (Convolutional LSTM) est une extension du LSTM classique conçue pour
 traiter des **données spatio-temporelles** (séquences d’images, cartes, champs 2D évoluant dans le temps).
 
