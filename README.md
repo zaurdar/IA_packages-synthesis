@@ -186,11 +186,15 @@ Mémoire explicite via cₜ
 * Output
 
 (B, H) ou (B, T, H)
-
+en fonction du role qu'on va lui donner :
+(B,H,T) si on fait du many-to-many, ex: taging temporel
+(B,H) si on fait du many-to-one, ex: la classification
 États internes (hₜ, cₜ)
 * Implémentation
-```python
+
 Keras
+-le paramètre return_sequences permet de spécifier si on veux toute la sequence B,T,H ou juste B,H
+```python
 LSTM(
     units,
     activation="tanh",
@@ -202,6 +206,7 @@ LSTM(
 )
 ```
 PyTorch
+-en pytorch il retourne automatiquement toute la sequence l'output a donc d'office la forme B,T,H
 ```python
 nn.LSTM(
     input_size,
