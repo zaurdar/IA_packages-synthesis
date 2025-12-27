@@ -111,6 +111,8 @@ PyTorch : (B, C, H, W)
 keras : (B,Hout​,Wout​,Cout​)
 
 PyTorch : (B,Cout​,Hout​,Wout​)
+
+
 Pour faire du time distributed en keras c'est pareil que pour les MLP par contre en pytorch on recommende d'utiliser x.view(B*T,...) pour fuisonner la couche de batch et temporelle( on les remets après mais ainsi le cnn ne mélange pas les infos temporelles).
 
 Dans le cas temporel on a donc :
