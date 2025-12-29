@@ -71,6 +71,7 @@ Keras : (B,Lout​,Cout​)
 PyTorch : (B,Cout​,Lout​)
 
 * Implémentation
+
 Keras
 ```python
 Conv1D(
@@ -111,6 +112,20 @@ keras : (B,Hout​,Wout​,Cout​)
 
 PyTorch : (B,Cout​,Hout​,Wout​)
 
+
+Pour faire du time distributed en keras c'est pareil que pour les MLP par contre en pytorch on recommende d'utiliser x.view(B*T,...) pour fuisonner la couche de batch et temporelle( on les remets après mais ainsi le cnn ne mélange pas les infos temporelles).
+
+Dans le cas temporel on a donc :
+Tenseurs d’entrée
+
+PyTorch
+
+(B, T, C, H, W)
+
+
+Keras / TensorFlow
+
+(B, T, H, W, C)
 * Implémentation
 Keras
 ```python
@@ -186,11 +201,15 @@ Mémoire explicite via cₜ
 * Output
 
 (B, H) ou (B, T, H)
-
+en fonction du role qu'on va lui donner :
+(B,H,T) si on fait du many-to-many, ex: taging temporel
+(B,H) si on fait du many-to-one, ex: la classification
 États internes (hₜ, cₜ)
 * Implémentation
-```python
+
 Keras
+-le paramètre return_sequences permet de spécifier si on veux toute la sequence B,T,H ou juste B,H
+```python
 LSTM(
     units,
     activation="tanh",
@@ -202,6 +221,7 @@ LSTM(
 )
 ```
 PyTorch
+-en pytorch il retourne automatiquement toute la sequence l'output a donc d'office la forme B,T,H
 ```python
 nn.LSTM(
     input_size,
@@ -212,6 +232,151 @@ nn.LSTM(
     bidirectional=False
 )
 ```
+### 🔹 BiLSTM
+* input
+
+En général (Keras, et PyTorch avec batch_first=True) :
+
+Input : (B, T, F)
+
+* output
+
+Un BiLSTM concatène forward+backward, donc la dimension cachée devient 2H.
+
+Cas A — sortie à chaque timestep :
+
+Output seq : (B, T, 2H)
+
+Cas B — sortie globale (dernier état) :
+
+Output last : (B, 2H) (souvent on prend le dernier vecteur de la séquence ou on pool)
+* Implémentation
+Keras
+
+👉 En Keras, un BiLSTM n’est pas une couche séparée, mais un wrapper Bidirectional autour d’un LSTM.
+
+return_sequences garde le même rôle que pour LSTM
+
+la dimension cachée est doublée automatiquement : 2H
+```python
+Bidirectional(
+    LSTM(
+        units,
+        activation="tanh",
+        recurrent_activation="sigmoid",
+        return_sequences=False,
+        return_state=False,
+        dropout=0.0,
+        recurrent_dropout=0.0
+    ),
+    merge_mode="concat"  # par défaut
+)
+```
+
+PyTorch
+
+👉 En PyTorch, le BiLSTM est activé via le paramètre bidirectional=True.
+
+PyTorch retourne toujours toute la séquence
+
+la dimension cachée est aussi doublée automatiquement
+```python
+nn.LSTM(
+    input_size,
+    hidden_size,
+    num_layers=1,
+    batch_first=True,
+    dropout=0.0,
+    bidirectional=True
+)
+```
+### 🔹 ConvLSTM
+Un **ConvLSTM** (Convolutional LSTM) est une extension du LSTM classique conçue pour
+traiter des **données spatio-temporelles** (séquences d’images, cartes, champs 2D évoluant dans le temps).
+
+L’idée clé est simple :
+
+> **on remplace toutes les opérations fully connected internes du LSTM par des convolutions**.
+
+Ainsi :
+- la **structure spatiale** (voisinage, motifs locaux) est conservée,
+- la **dynamique temporelle** est modélisée via la mémoire du LSTM.
+
+Conceptuellement, un ConvLSTM combine :
+- un **CNN** (pour l’espace),
+- un **LSTM** (pour le temps),
+mais de manière **couplée et locale**, et non séquentielle.
+
+* input
+
+À chaque pas de temps, l’entrée est une carte spatiale (image / feature map).
+
+En général :
+
+Keras / TensorFlow :
+
+Input : (B, T, H, W, C)
+
+
+PyTorch :
+
+Input : (B, T, C, H, W)
+
+
+où :
+
+B : batch size
+
+T : nombre de pas de temps
+
+H, W : dimensions spatiales
+
+C : canaux d’entrée
+
+* output
+
+Un ConvLSTM conserve la structure spatiale dans sa sortie.
+La dimension cachée correspond au nombre de filtres convolutionnels F.
+
+Cas A — sortie à chaque timestep :
+
+Output seq : (B, T, H, W, F)
+
+
+Cas B — sortie finale uniquement :
+
+Output last : (B, H, W, F)
+
+
+👉 Contrairement à un LSTM/BiLSTM classique, la sortie n’est pas un vecteur, mais une carte 2D (feature map).
+
+* Implémentation
+
+Keras
+
+👉 En Keras, le ConvLSTM est disponible nativement via ConvLSTM2D.
+
+filters joue le rôle de la dimension cachée H
+
+kernel_size définit le voisinage spatial
+
+return_sequences garde le même rôle que pour LSTM
+```python
+ConvLSTM2D(
+    filters,
+    kernel_size=(3, 3),
+    padding="same",
+    activation="tanh",
+    return_sequences=False,  # True -> (B, T, H, W, F)
+    return_state=False,
+    dropout=0.0,
+    recurrent_dropout=0.0
+)
+```
+PyTorch
+
+👉 PyTorch ne fournit pas de ConvLSTM natif.
+Il faut l’implémenter manuellement ou utiliser une librairie externe.
 ### 🔹 Transformer (Encoder)
 
 * Rôle
@@ -237,7 +402,8 @@ Add & Norm
 * Output
 
 (B, T, D)
-
+* Implémentation
+  
 -Keras
 ```python
 MultiHeadAttention(
@@ -572,3 +738,116 @@ Transformer → AdamW + scheduler + warmup
 Régression → Adam(W) + MSE / Huber
 
 Classification → Adam(W) + CE / BCE
+## 6) éstimer le nombre de couches nécessaires
+### Estimation du nombre de couches nécessaires
+
+* Principe fondamental
+Il n’existe pas de formule exacte pour déterminer le nombre de couches d’un réseau.
+La profondeur doit être choisie **en fonction de la structure du problème**, et non
+uniquement à partir des dimensions d’entrée ou de sortie.
+
+La profondeur permet de **factoriser la complexité** :
+- couches basses : motifs simples,
+- couches intermédiaires : structures composées,
+- couches hautes : concepts abstraits.
+
+---
+
+### Heuristique 1 — Complexité spatiale et structure des données
+
+* Données simples
+- signaux peu structurés,
+- faible variabilité.
+
+👉 1 à 2 couches suffisent.
+
+* Données structurées
+- textures,
+- motifs répétitifs,
+- corrélations locales.
+
+👉 3 à 5 couches sont généralement nécessaires.
+
+* Données très hiérarchiques
+- structures complexes,
+- dépendances multi-échelles.
+
+👉 5 à 10 couches ou plus, souvent avec connexions résiduelles.
+
+---
+
+### Heuristique 2 — Étendue des dépendances temporelles
+
+* Dépendances courtes
+- variations locales,
+- peu de mémoire nécessaire.
+
+👉 Convolutions et pooling temporel suffisants.
+
+* Dépendances moyennes
+- évolution progressive,
+- transitions temporelles claires.
+
+👉 Une couche LSTM ou BiLSTM.
+
+* Dépendances longues
+- contexte global important,
+- mémoire sur de nombreux pas de temps.
+
+👉 Plusieurs couches récurrentes, ou architectures à attention.
+
+---
+
+### Heuristique 3 — Taille du jeu de données
+
+* Peu de données
+- risque élevé de sur-apprentissage.
+
+👉 Réseau peu profond et fortement régularisé.
+
+* Beaucoup de données
+- grande diversité,
+- meilleure généralisation possible.
+
+👉 Réseau plus profond, avec normalisation et régularisation adaptées.
+
+---
+
+### Heuristique 4 — Nature de la sortie
+
+* Sortie simple
+- classification globale,
+- régression scalaire.
+
+👉 Peu de couches nécessaires.
+
+* Sortie complexe
+- prédiction par pas de temps,
+- sorties structurées.
+
+👉 Plus de couches pour capter des relations fines.
+
+---
+
+### Méthode pratique recommandée
+
+1. Commencer par une **architecture simple**.
+2. Observer les **courbes d’apprentissage**.
+3. Ajouter des couches uniquement en cas de sous-apprentissage.
+4. Arrêter l’augmentation de profondeur dès que le gain devient marginal.
+
+---
+
+* Points importants
+
+- Ajouter des couches augmente la capacité, mais aussi le risque d’overfitting.
+- La profondeur n’est utile que si elle correspond à une structure réelle dans les données.
+- La validation empirique reste indispensable.
+
+---
+
+* Résumé
+
+> Le nombre de couches d’un réseau doit être choisi de manière progressive et justifiée,
+> en fonction de la complexité des motifs à apprendre, des dépendances temporelles et
+> de la quantité de données disponibles.
