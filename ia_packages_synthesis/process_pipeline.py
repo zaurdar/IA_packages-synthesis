@@ -1,4 +1,10 @@
 import numpy as np
+import torch
+from sklearn.model_selection import train_test_split
+from torch.utils.data import TensorDataset, DataLoader, Subset
+import torch.optim as optim
+import torch.nn as nn
+from tqdm import tqdm
 class preprocessing_pipeline:
     def __init__(self, tree=None):
         def fnct(x):
@@ -34,3 +40,64 @@ class preprocessing_pipeline:
             lines.append(f"├── [{step}──node : {temp}──input_shape : [{dummy.shape}]──output_shape : [{out_dummy.shape}]")
         for line in lines:
             print(line)
+class pytorch_compiler:
+    def __init__(self,optimizer,loss,epochs,batch_size):
+        self.optimizer = optimizer
+        self.loss = loss
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def fit(self,model,inputs,targets):
+        dataset = TensorDataset(inputs, targets)
+        indices = list(range(len(dataset)))
+        train_idx, test_idx = train_test_split(indices, test_size=0.2, random_state=42)
+
+        train_set = Subset(dataset, train_idx)
+        test_set = Subset(dataset, test_idx)
+        batch_size = self.batch_size
+
+        train_dataloader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
+        test_dataloader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
+
+        print(f"└── nombre de fichiers d'entrainement : {len(train_set)}")
+        print(f"├── nombre de fichiers de test : {len(test_set)}")
+        criterion = self.loss
+        optimizer = self.optimizer
+        train_losses = []
+        val_losses = []
+        model.to(self.device)
+        for epoch in tqdm(range(self.epochs), desc=f"├── training in progress"):
+            model.train()
+            running_train_loss = 0.0
+            n_seen = 0
+            for X, Y in tqdm(train_dataloader):
+                X = X.to(device)
+                Y = Y.to(device)
+                optimizer.zero_grad()
+                output = model(X)
+                loss = criterion(output, Y)
+                loss.backward()
+                optimizer.step()
+                bs = X.size(0)
+                running_train_loss += loss.item() * bs
+                n_seen += bs
+
+            epoch_train_loss = running_train_loss / max(1, n_seen)
+            train_losses.append(epoch_train_loss)
+            print(f"├── train loss = {epoch_train_loss}")
+            running_val_loss = 0.0
+            n_seen = 0
+            model.eval()
+            with torch.no_grad():
+                for X, Y in test_dataloader:
+                    X = X.to(device)
+                    Y = Y.to(device)
+                    output = model(X)
+                    loss = criterion(output, Y)
+                    bs = X.size(0)
+                    running_val_loss += loss.item() * bs
+                    n_seen += bs
+            epoch_val_loss = running_val_loss / max(1, n_seen)
+            val_losses.append(epoch_val_loss)
+            print(f"├── val loss = {epoch_val_loss}")
+        return model, train_losses, val_losses
