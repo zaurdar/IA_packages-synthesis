@@ -61,18 +61,19 @@ class pytorch_compiler:
         train_dataloader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
         test_dataloader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
 
-        print(f"└── nombre de fichiers d'entrainement : {len(train_set)}")
+        print(f"├── nombre de fichiers d'entrainement : {len(train_set)}")
         print(f"├── nombre de fichiers de test : {len(test_set)}")
         criterion = self.loss
         optimizer = self.optimizer
         train_losses = []
         val_losses = []
         model.to(self.device)
-        for epoch in tqdm(range(self.epochs), desc=f"├── training in progress"):
+        pbar = tqdm(range(self.epochs), desc="training")
+        for epoch in pbar:
             model.train()
             running_train_loss = 0.0
             n_seen = 0
-            for X, Y in tqdm(train_dataloader):
+            for X, Y in train_dataloader:
                 X = X.to(device)
                 Y = Y.to(device)
                 optimizer.zero_grad()
@@ -86,7 +87,6 @@ class pytorch_compiler:
 
             epoch_train_loss = running_train_loss / max(1, n_seen)
             train_losses.append(epoch_train_loss)
-            print(f"├── train loss = {epoch_train_loss}")
             running_val_loss = 0.0
             n_seen = 0
             model.eval()
@@ -101,5 +101,5 @@ class pytorch_compiler:
                     n_seen += bs
             epoch_val_loss = running_val_loss / max(1, n_seen)
             val_losses.append(epoch_val_loss)
-            print(f"├── val loss = {epoch_val_loss}")
+            pbar.set_postfix(train_loss=epoch_train_loss, val_loss=epoch_val_loss)
         return model, train_losses, val_losses
