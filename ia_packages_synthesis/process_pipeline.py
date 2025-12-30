@@ -22,7 +22,7 @@ class preprocessing_pipeline:
             temp = self.tree[temp]["lil_bro"]
             f = self.tree[temp]["fnct"]
             param = self.tree[temp]["param"]
-            pipe = lambda x, pipe=pipe, f=f, params=param: f(pipe(x), **param)
+            pipe = lambda x, pipe=pipe, f=f, param=param: f(pipe(x), **param)
         return pipe
     def rendering(self,shape):
         lines = []
