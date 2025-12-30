@@ -53,6 +53,7 @@ class pytorch_compiler:
         indices = list(range(len(dataset)))
         train_idx, test_idx = train_test_split(indices, test_size=0.2, random_state=42)
         model = self.model
+        device = self.device
         train_set = Subset(dataset, train_idx)
         test_set = Subset(dataset, test_idx)
         batch_size = self.batch_size
