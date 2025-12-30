@@ -41,17 +41,18 @@ class preprocessing_pipeline:
         for line in lines:
             print(line)
 class pytorch_compiler:
-    def __init__(self,optimizer,loss,epochs,batch_size):
+    def __init__(self,model,optimizer,loss,epochs,batch_size):
         self.optimizer = optimizer
         self.loss = loss
         self.epochs = epochs
         self.batch_size = batch_size
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    def fit(self,model,inputs,targets):
+        self.model = model
+    def fit(self,inputs,targets):
         dataset = TensorDataset(inputs, targets)
         indices = list(range(len(dataset)))
         train_idx, test_idx = train_test_split(indices, test_size=0.2, random_state=42)
-
+        model = self.model
         train_set = Subset(dataset, train_idx)
         test_set = Subset(dataset, test_idx)
         batch_size = self.batch_size
