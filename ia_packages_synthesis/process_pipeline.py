@@ -5,6 +5,8 @@ from torch.utils.data import TensorDataset, DataLoader, Subset
 import torch.optim as optim
 import torch.nn as nn
 from tqdm import tqdm
+import cloudpickle
+
 class preprocessing_pipeline:
     def __init__(self, tree=None):
         def fnct(x):
@@ -40,6 +42,14 @@ class preprocessing_pipeline:
             lines.append(f"├── [{step}──node : {temp}──input_shape : [{dummy.shape}]──output_shape : [{out_dummy.shape}]")
         for line in lines:
             print(line)
+    def save(self, path):
+        with open(path, "wb") as f:
+            cloudpickle.dump(self.tree, f)
+
+    def load(self, path):
+        with open(path, "rb") as f:
+            self.tree = cloudpickle.load(f)
+        return self
 class pytorch_compiler:
     def __init__(self,model,optimizer,loss,epochs,batch_size):
         self.optimizer = optimizer
