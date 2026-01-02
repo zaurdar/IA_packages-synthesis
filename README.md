@@ -231,6 +231,7 @@ nn.LSTM(
     dropout=0.0,
     bidirectional=False
 )
+attention dans le forward il faut l'appeler comme ça : x, (h_n, c_n) = self.LSTM(x)
 ```
 ### 🔹 BiLSTM
 * input
