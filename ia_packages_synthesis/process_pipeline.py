@@ -26,11 +26,10 @@ class preprocessing_pipeline:
             param = self.tree[temp]["param"]
             pipe = lambda x, pipe=pipe, f=f, param=param: f(pipe(x), **param)
         return pipe
-    def rendering(self,shape):
+    def rendering(self,dummy):
         lines = []
         temp = "father"
         step = 0
-        dummy = np.zeros(shape)
         out_dummy = self.tree[temp]["fnct"](dummy)
         lines.append(f"└── [{step}──node : {temp}────────────────────────────────")
         while self.tree[temp]["lil_bro"] != "dawn":
